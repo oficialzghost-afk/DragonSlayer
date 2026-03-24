@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soberano - Arena Host</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Inter:wght@400;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #050505; color: white; overflow: hidden; }
+        .cinzel { font-family: 'Cinzel', serif; }
+        .log-line { border-left: 2px solid #f59e0b; padding-left: 8px; margin-bottom: 4px; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+    </style>
+</head>
+<body class="h-screen flex flex-col md:flex-row p-4 gap-4">
+
+    <aside class="w-full md:w-80 bg-[#0a0a0a] border border-amber-500/20 rounded-2xl p-6 flex flex-col shadow-[0_0_50px_rgba(0,0,0,1)]">
+        <h2 class="cinzel text-amber-500 text-xl mb-1">Soberano</h2>
+        <p class="text-[9px] uppercase tracking-widest text-gray-500 mb-6">Controle da Arena Divina</p>
+
+        <div class="space-y-4 mb-6">
+            <div class="bg-white/5 p-4 rounded-xl border border-white/5">
+                <p class="text-[10px] text-gray-500 uppercase font-bold mb-1">ID Fixo da Arena</p>
+                <p id="host-id" class="text-white font-mono text-sm">Iniciando espírito...</p>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-2">
+                <div class="bg-amber-500/5 p-3 rounded-xl border border-amber-500/10 text-center">
+                    <p class="text-[8px] text-amber-500/50 uppercase font-bold">Ouro Total</p>
+                    <p id="gold-display" class="text-xl font-black text-amber-500">0</p>
+                </div>
+                <div class="bg-blue-500/5 p-3 rounded-xl border border-blue-500/10 text-center">
+                    <p class="text-[8px] text-blue-500/50 uppercase font-bold">Guerreiros</p>
+                    <p id="peer-count" class="text-xl font-black text-blue-400">0</p>
+                </div>
+            </div>
+        </div>
+
+        <p class="text-[10px] text-gray-500 uppercase font-bold mb-2">Pergaminho de Atividades</p>
+        <div id="logs" class="flex-1 bg-black/50 rounded-xl p-4 overflow-y-auto font-mono text-[10px] text-gray-400 no-scrollbar border border-white/5">
+            <div class="log-line text-green-500">Aguardando despertar do servidor...</div>
+        </div>
+    </aside>
+
+    <main class="flex-1 bg-[#0a0a0a] border border-white/5 rounded-2xl flex flex-col items-center justify-center relative overflow-hidden">
+        <div class="absolute inset-0 bg-amber-500/5 blur-[120px] rounded-full"></div>
+        <img src="https://cdn-icons-png.flaticon.com/512/1004/1004664.png" class="w-64 h-64 opacity-20 grayscale brightness-50 float-anim">
+        <h3 class="cinzel text-gray-700 text-2xl mt-8 tracking-widest uppercase">Arena Ativa</h3>
+    </main>
+
+    <script>
+        // --- CONFIGURAÇÃO ---
+        const ARENA_ID = "ARENA_DIVINA_OFICIAL_123"; // ID FIXO PARA TODOS
+        // --------------------
+
+        let totalGold = 0;
+        let connections = [];
+        const peer = new Peer(ARENA_ID);
+
+        peer.on('open', id => {
+            document.getElementById('host-id').innerText = id;
+            addLog("Arena aberta. ID Fixo estabelecido.");
+        });
+
+        peer.on('connection', conn => {
+            conn.on('open', () => {
+                connections.push(conn);
+                updateUI();
+                addLog(`Guerreiro ${conn.peer.substring(0,6)} entrou.`);
+                conn.send({ type: 'sync', gold: totalGold });
+            });
+
+            conn.on('data', data => {
+                if (data.type === 'tap') {
+                    totalGold += data.amount;
+                    updateUI();
+                    addLog(`Tap de ${conn.peer.substring(0,5)}: +${data.amount}`);
+                    broadcast({ type: 'update', gold: totalGold });
+                }
+            });
+
+            conn.on('close', () => {
+                connections = connections.filter(c => c !== conn);
+                updateUI();
+                addLog("Um aliado partiu.");
+            });
+        });
+
+        function broadcast(data) {
+            connections.forEach(c => c.open && c.send(data));
+        }
+
+        function updateUI() {
+            document.getElementById('gold-display').innerText = Math.floor(totalGold);
+            document.getElementById('peer-count').innerText = connections.length;
+        }
+
+        function addLog(m) {
+            const l = document.getElementById('logs');
+            l.innerHTML = `<div class="log-line">> ${m}</div>` + l.innerHTML;
+        }
+
+        peer.on('error', err => {
+            if(err.type === 'unavailable-id') alert("Erro: Já existe um HOST ativo com este ID!");
+        });
+    </script>
+</body>
+</html>
