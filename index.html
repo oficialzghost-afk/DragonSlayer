@@ -1,640 +1,1352 @@
 <!DOCTYPE html>
-<html lang="pt-pt">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DragonSlayer - Arena Divina</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medieval RPG - Mundo Aberto</title>
     <style>
-        :root {
-            --gold: #f59e0b;
-            --dragon-red: #ef4444;
-            --deep-dark: #070707;
-            --card-bg: #121212;
-            --vip-purple: #a855f7;
-            --verified-blue: #3b82f6;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--deep-dark);
-            color: #e5e7eb;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             overflow: hidden;
-            -webkit-tap-highlight-color: transparent;
+            background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1e 100%);
+            width: 100vw;
+            height: 100vh;
         }
 
-        .cinzel { font-family: 'Cinzel', serif; }
-
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
-
-        .glass-card {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 16px;
-        }
-
-        .dragon-tap {
-            transition: transform 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            filter: drop-shadow(0 0 20px rgba(245, 158, 11, 0.2));
-        }
-
-        .dragon-tap:active { transform: scale(0.92); }
-
-        .status-badge {
-            position: absolute;
-            bottom: -2px;
-            right: -2px;
-            width: 22px;
-            height: 22px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 2px solid var(--deep-dark);
-            font-size: 10px;
-            z-index: 5;
-        }
-
-        .nav-active {
-            color: var(--gold);
+        #gameContainer {
+            width: 100%;
+            height: 100%;
             position: relative;
+            overflow: hidden;
         }
 
-        .nav-active::after {
-            content: '';
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .ui-layer {
             position: absolute;
-            bottom: -8px;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .panel {
+            position: absolute;
+            background: rgba(20, 20, 35, 0.95);
+            border: 2px solid #8B7355;
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 13px;
+            color: #D4AF37;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px #000;
+            pointer-events: auto;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+        }
+
+        .stats-panel {
+            top: 15px;
+            left: 15px;
+            width: 280px;
+            z-index: 100;
+        }
+
+        .inventory-panel {
+            top: 15px;
+            right: 15px;
+            width: 280px;
+            max-height: 350px;
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .minimap-panel {
+            bottom: 15px;
+            left: 15px;
+            width: 200px;
+            height: 200px;
+            padding: 10px;
+            z-index: 100;
+        }
+
+        .location-display {
+            position: absolute;
+            top: 50%;
             left: 50%;
-            transform: translateX(-50%);
-            width: 20px;
-            height: 3px;
-            background: var(--gold);
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 3px solid #D4AF37;
+            padding: 20px 40px;
+            color: #FFD700;
+            font-size: 28px;
+            font-weight: bold;
+            text-align: center;
             border-radius: 10px;
-            box-shadow: 0 0 10px var(--gold);
-        }
-
-        .vip-border {
-            border: 1px solid var(--vip-purple) !important;
-            box-shadow: 0 0 15px rgba(168, 85, 247, 0.3);
-        }
-
-        .vip-text {
-            background: linear-gradient(to right, #a855f7, #ec4899);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-weight: 900;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
-        }
-
-        .float-anim { animation: float 3s ease-in-out infinite; }
-
-        #toast-container {
+            text-shadow: 3px 3px 6px #000;
+            opacity: 0;
             pointer-events: none;
-            z-index: 9999;
+            transition: opacity 0.5s;
+            z-index: 50;
+            box-shadow: 0 0 30px rgba(212, 175, 55, 0.5);
         }
 
-        .admin-locked {
-            filter: blur(12px);
+        .location-display.show {
+            opacity: 1;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 8px 0;
+            border-bottom: 1px solid #8B7355;
+            padding-bottom: 5px;
+        }
+
+        .stat-label {
+            flex: 1;
+        }
+
+        .stat-value {
+            color: #FFD700;
+        }
+
+        .stat-bar-container {
+            width: 100%;
+            height: 12px;
+            background: #333;
+            border: 1px solid #8B7355;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 4px 0;
+        }
+
+        .stat-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #00DD00, #00FF00);
+            transition: width 0.2s;
+        }
+
+        .stat-bar.health {
+            background: linear-gradient(90deg, #FF3333, #FF6666);
+        }
+
+        .stat-bar.mana {
+            background: linear-gradient(90deg, #3366FF, #66CCFF);
+        }
+
+        .stat-bar.stamina {
+            background: linear-gradient(90deg, #FFD700, #FFFF66);
+        }
+
+        .inventory-item {
+            background: rgba(139, 115, 85, 0.2);
+            border-left: 3px solid #D4AF37;
+            padding: 8px;
+            margin: 6px 0;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .inventory-item:hover {
+            background: rgba(139, 115, 85, 0.5);
+            transform: translateX(4px);
+        }
+
+        .section-title {
+            color: #FFD700;
+            font-size: 14px;
+            font-weight: bold;
+            margin: 10px 0 8px 0;
+            text-transform: uppercase;
+            border-bottom: 2px solid #8B7355;
+            padding-bottom: 5px;
+        }
+
+        #minimapCanvas {
+            width: 100%;
+            height: 100%;
+            border: 2px solid #8B7355;
+            border-radius: 4px;
+            background: #1a1a2e;
+        }
+
+        .controls-panel {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            background: rgba(20, 20, 35, 0.95);
+            border: 2px solid #8B7355;
+            border-radius: 8px;
+            padding: 12px 15px;
+            color: #D4AF37;
+            font-size: 12px;
+            text-align: center;
+            pointer-events: auto;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
+            z-index: 100;
+        }
+
+        .control-key {
+            display: inline-block;
+            background: #333;
+            border: 1px solid #666;
+            padding: 3px 8px;
+            margin: 2px 3px;
+            border-radius: 3px;
+            font-weight: bold;
+            color: #FFD700;
+        }
+
+        .quest-marker {
+            position: absolute;
+            font-size: 20px;
+            text-shadow: 2px 2px 4px #000;
             pointer-events: none;
-            user-select: none;
         }
 
-        .no-scrollbar::-webkit-scrollbar { display: none; }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(139, 115, 85, 0.1);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #8B7355;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #A0826D;
+        }
+
+        @media (max-width: 768px) {
+            .stats-panel, .inventory-panel {
+                font-size: 11px;
+                padding: 10px;
+                width: 200px;
+            }
+
+            .panel {
+                border-width: 1px;
+            }
+        }
     </style>
 </head>
-<body class="h-screen w-screen flex flex-col md:flex-row overflow-hidden">
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        <div class="ui-layer">
+            <div class="panel stats-panel">
+                <div class="section-title">⚔️ Herói</div>
+                <div class="stat-row">
+                    <span class="stat-label">Vida:</span>
+                    <span class="stat-value" id="hpValue">100/100</span>
+                </div>
+                <div class="stat-bar-container">
+                    <div class="stat-bar health" id="hpBar" style="width: 100%"></div>
+                </div>
 
-    <div id="toast-container" class="fixed top-6 left-1/2 -translate-x-1/2 flex flex-col gap-2 w-full max-w-xs items-center"></div>
+                <div class="stat-row">
+                    <span class="stat-label">Mana:</span>
+                    <span class="stat-value" id="manaValue">50/50</span>
+                </div>
+                <div class="stat-bar-container">
+                    <div class="stat-bar mana" id="manaBar" style="width: 100%"></div>
+                </div>
 
-    <!-- Gift Overlay -->
-    <div id="gift-overlay" class="fixed top-0 left-0 w-full z-50 p-4 hidden">
-        <div class="glass-card bg-amber-500/10 border-amber-500/50 p-4 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <span class="text-2xl">🎁</span>
-                <div>
-                    <p class="text-[10px] uppercase font-bold text-amber-500">Bênção Recebida!</p>
-                    <p id="gift-text" class="text-sm text-white">Recursos recebidos.</p>
+                <div class="stat-row">
+                    <span class="stat-label">Estamina:</span>
+                    <span class="stat-value" id="staminaValue">100/100</span>
+                </div>
+                <div class="stat-bar-container">
+                    <div class="stat-bar stamina" id="staminaBar" style="width: 100%"></div>
+                </div>
+
+                <div class="section-title" style="margin-top: 15px;">📊 Status</div>
+                <div class="stat-row">
+                    <span class="stat-label">Nível:</span>
+                    <span class="stat-value" id="levelValue">1</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Exp:</span>
+                    <span class="stat-value" id="expValue">0/100</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Ouro:</span>
+                    <span class="stat-value" id="goldValue">250</span>
+                </div>
+
+                <div class="section-title" style="margin-top: 15px;">⚔️ Combate</div>
+                <div class="stat-row">
+                    <span class="stat-label">Ataque:</span>
+                    <span class="stat-value">18</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Defesa:</span>
+                    <span class="stat-value">8</span>
                 </div>
             </div>
-            <button onclick="this.parentElement.parentElement.classList.add('hidden')" class="text-white/50 text-xl">&times;</button>
+
+            <div class="panel inventory-panel">
+                <div class="section-title">🎒 Inventário</div>
+                <div class="inventory-item">⚔️ Espada de Aço Forjado</div>
+                <div class="inventory-item">🛡️ Escudo de Carvalho Reforçado</div>
+                <div class="inventory-item">🧪 Poção de Vida Major</div>
+                <div class="inventory-item">🧪 Poção de Mana</div>
+                <div class="inventory-item">🍖 Carne de Veado</div>
+                <div class="inventory-item">🥕 Maçã Silvestre</div>
+                <div class="inventory-item">💎 Rubi Lendário</div>
+            </div>
+
+            <div class="panel minimap-panel">
+                <div class="section-title">🗺️ Mini Mapa</div>
+                <canvas id="minimapCanvas"></canvas>
+            </div>
+
+            <div class="controls-panel">
+                <div><span class="control-key">W</span><span class="control-key">A</span><span class="control-key">S</span><span class="control-key">D</span> Mover</div>
+                <div style="margin-top: 6px;"><span class="control-key">ESPAÇO</span> Interagir</div>
+            </div>
+
+            <div class="location-display" id="locationDisplay"></div>
         </div>
     </div>
 
-    <!-- Loading -->
-    <div id="auth-overlay" class="fixed inset-0 bg-black z-[100] flex flex-col items-center justify-center">
-        <div class="relative w-20 h-20 mb-6">
-            <div class="absolute inset-0 border-4 border-amber-500/10 rounded-full"></div>
-            <div class="absolute inset-0 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
-        </div>
-        <h2 class="cinzel text-amber-500 tracking-widest text-xs">Sincronizando Destino...</h2>
-    </div>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const minimapCanvas = document.getElementById('minimapCanvas');
+        const minimapCtx = minimapCanvas.getContext('2d');
 
-    <!-- Sidebar -->
-    <aside class="w-full md:w-80 bg-[#0a0a0a] border-b md:border-b-0 md:border-r border-white/5 p-6 flex flex-col items-center shrink-0">
-        <div class="relative mb-4">
-            <div id="avatar-glow" class="absolute inset-0 rounded-full blur-xl opacity-50"></div>
-            <div class="relative w-28 h-28">
-                <img id="user-avatar" src="https://images.unsplash.com/photo-1549194388-f61be84a6e9e?q=80&w=400" 
-                     class="w-full h-full rounded-full object-cover border-2 border-white/10 p-1 bg-black">
-                <div id="verified-badge" class="status-badge bg-blue-500 hidden">✓</div>
-            </div>
-        </div>
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            minimapCanvas.width = 170;
+            minimapCanvas.height = 170;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
 
-        <h1 id="user-name" class="cinzel text-lg text-white mb-1">...</h1>
-        <p id="user-role" class="text-[9px] uppercase tracking-[0.2em] text-amber-500 font-bold mb-2 opacity-60">Guerreiro da Arena</p>
-        
-        <!-- Local onde o botão de Comandos aparecerá para o Admin -->
-        <div id="sidebar-admin-area" class="mb-6 w-full flex justify-center hidden">
-            <button onclick="showTab('admin', null)" class="px-4 py-1.5 rounded-full border border-amber-500/30 text-[8px] uppercase font-black text-amber-500 hover:bg-amber-500/10 transition-all tracking-widest">
-                ⚙️ Comandos de Mestre
-            </button>
-        </div>
+        // ============ CLASSES ============
 
-        <div class="grid grid-cols-2 gap-2 w-full">
-            <div class="glass-card p-3 flex flex-col items-center border-amber-500/10">
-                <span class="text-[8px] text-gray-500 uppercase font-bold mb-1">Ouro</span>
-                <span id="stat-gold" class="text-amber-500 font-black text-base">0</span>
-            </div>
-            <div class="glass-card p-3 flex flex-col items-center border-blue-500/10">
-                <span class="text-[8px] text-gray-500 uppercase font-bold mb-1">Diamantes</span>
-                <span id="stat-diamonds" class="text-blue-400 font-black text-base">0</span>
-            </div>
-            <div class="glass-card p-3 flex flex-col items-center border-red-500/10">
-                <span class="text-[8px] text-gray-500 uppercase font-bold mb-1">Ataque</span>
-                <span id="stat-atk" class="text-red-500 font-black text-base">0</span>
-            </div>
-            <div class="glass-card p-3 flex flex-col items-center border-purple-500/10">
-                <span class="text-[8px] text-gray-500 uppercase font-bold mb-1">Status</span>
-                <span id="stat-vip" class="text-gray-500 font-black text-[9px] uppercase">Mortal</span>
-            </div>
-        </div>
+        class Player {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.width = 40;
+                this.height = 40;
+                this.speed = 4;
+                this.hp = 100;
+                this.maxHp = 100;
+                this.mana = 50;
+                this.maxMana = 50;
+                this.stamina = 100;
+                this.maxStamina = 100;
+                this.level = 1;
+                this.exp = 0;
+                this.maxExp = 100;
+                this.gold = 250;
+                this.direction = 'down';
+                this.moving = false;
+            }
 
-        <div class="mt-8 md:mt-auto w-full glass-card p-3 border-white/5">
-            <p class="text-[8px] text-gray-600 uppercase text-center mb-1 font-bold">Última Bênção</p>
-            <p id="last-donor" class="text-[10px] text-gray-400 text-center truncate italic">Nenhuma</p>
-        </div>
-    </aside>
+            draw(offsetX, offsetY) {
+                const screenX = this.x - offsetX;
+                const screenY = this.y - offsetY;
 
-    <!-- Main Content -->
-    <main class="flex-1 flex flex-col relative overflow-hidden">
-        <nav id="main-nav" class="flex items-center justify-around p-4 bg-black/60 backdrop-blur-xl border-b border-white/5 relative z-20 no-scrollbar overflow-x-auto">
-            <button onclick="showTab('training', this)" class="nav-btn nav-active text-[10px] font-bold uppercase tracking-widest px-4 py-2 shrink-0">Treinar</button>
-            <button onclick="showTab('shop', this)" class="nav-btn text-gray-500 text-[10px] font-bold uppercase tracking-widest px-4 py-2 shrink-0">Mercado</button>
-            <button onclick="showTab('ranking', this)" class="nav-btn text-gray-500 text-[10px] font-bold uppercase tracking-widest px-4 py-2 shrink-0">Ranking</button>
-        </nav>
-
-        <div class="flex-1 overflow-y-auto p-6">
-            
-            <!-- Training Tab -->
-            <section id="training-tab" class="tab-content h-full flex flex-col items-center justify-center">
-                <div class="relative">
-                    <div class="absolute inset-0 bg-amber-500/5 blur-[80px] rounded-full"></div>
-                    <img src="https://cdn-icons-png.flaticon.com/512/1004/1004664.png" 
-                         onclick="handleTrain()"
-                         class="w-44 h-44 md:w-60 md:h-60 object-contain dragon-tap cursor-pointer float-anim relative z-10">
-                </div>
-                <div class="text-center mt-8">
-                    <h2 class="cinzel text-xl text-amber-500 mb-1">Forja de Almas</h2>
-                    <p id="click-value" class="text-gray-500 text-[10px] uppercase font-bold">+0 Ouro por toque</p>
-                </div>
-            </section>
-
-            <!-- Shop Tab -->
-            <section id="shop-tab" class="tab-content hidden pb-20">
-                <h2 class="cinzel text-xl text-amber-500 mb-6">Mercado Divino</h2>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="glass-card p-6 border-purple-500/30 bg-purple-500/5 md:col-span-2">
-                        <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-                            <div class="text-center md:text-left">
-                                <h3 class="text-lg font-black text-purple-400 uppercase tracking-tighter">Ascensão VIP Divina</h3>
-                                <p class="text-xs text-gray-400">Desbloqueia multiplicador <span class="text-purple-300 font-bold">x5 Ouro</span>, Selo de Verificado e Aura Púrpura.</p>
-                            </div>
-                            <button onclick="buyItem('vip', true, 20000)" class="w-full md:w-auto px-8 py-4 bg-purple-600 hover:bg-purple-500 text-white font-black rounded-xl text-xs uppercase shadow-lg transition-all active:scale-95">
-                                Adquirir (20.0K 💎)
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="glass-card p-6 border-blue-500/20">
-                        <h3 class="text-xs font-bold text-blue-400 uppercase mb-4">Pacotes de Cristais</h3>
-                        <div class="space-y-2">
-                            <button onclick="buyItem('diamond', 100, 10000)" class="w-full flex justify-between p-3 bg-black/40 rounded-lg text-xs hover:bg-white/5 transition-all">
-                                <span>100 Diamantes</span>
-                                <span class="text-amber-500 font-bold">10K Ouro</span>
-                            </button>
-                            <button onclick="buyItem('diamond', 1000, 80000)" class="w-full flex justify-between p-3 bg-black/40 rounded-lg text-xs hover:bg-white/5 transition-all">
-                                <span>1000 Diamantes</span>
-                                <span class="text-amber-500 font-bold">80K Ouro</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="glass-card p-6 border-red-500/20">
-                        <h3 class="text-xs font-bold text-red-400 uppercase mb-4">Lâminas Ancestrais</h3>
-                        <div class="space-y-2">
-                            <button onclick="buyItem('atk', 25, 5000)" class="w-full flex justify-between p-3 bg-black/40 rounded-lg text-xs hover:bg-white/5 transition-all">
-                                <span>+25 Ataque</span>
-                                <span class="text-amber-500 font-bold">5K Ouro</span>
-                            </button>
-                            <button onclick="buyItem('atk', 500, 1000)" class="w-full flex justify-between p-3 bg-black/40 rounded-lg text-xs hover:bg-white/5 transition-all">
-                                <span>+500 Ataque</span>
-                                <span class="text-blue-400 font-bold">1K 💎</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Ranking Tab -->
-            <section id="ranking-tab" class="tab-content hidden">
-                <h2 class="cinzel text-xl text-amber-500 mb-6">Mestres da Arena</h2>
-                <div id="ranking-list" class="space-y-2 pb-20"></div>
-            </section>
-
-            <!-- Admin Tab -->
-            <section id="admin-tab" class="tab-content hidden relative">
-                <div id="admin-auth-panel" class="absolute inset-0 z-50 flex flex-col items-center pt-20 bg-black/60 backdrop-blur-md">
-                    <div class="glass-card p-8 w-full max-w-sm border-amber-500/20 text-center">
-                        <h2 class="cinzel text-amber-500 mb-6">Acesso Supremo</h2>
-                        <input type="password" id="admin-pass-input" placeholder="Chave Mestra" class="w-full bg-black border border-white/10 rounded-xl p-4 text-center text-amber-500 focus:border-amber-500 outline-none mb-4">
-                        <button onclick="tryAdminAuth()" class="w-full py-4 bg-amber-500 text-black font-bold rounded-xl text-xs uppercase">Validar Identidade</button>
-                    </div>
-                </div>
-
-                <div id="admin-protected-content" class="admin-locked max-w-2xl mx-auto pb-20">
-                    <div class="flex justify-between items-center mb-8">
-                        <h2 class="cinzel text-xl text-amber-500">Painel Supremo</h2>
-                        <button onclick="lockAdmin()" class="text-[8px] text-gray-500 underline font-bold uppercase">Sair</button>
-                    </div>
-
-                    <div class="glass-card p-6 mb-6">
-                        <label class="text-[10px] uppercase font-bold text-gray-500 mb-2 block tracking-widest">Alvo da Operação</label>
-                        <select id="admin-target" class="w-full bg-black border border-white/10 rounded-xl p-3 text-sm text-white outline-none"></select>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="glass-card p-6 border-amber-500/20">
-                            <h3 class="text-[10px] font-bold uppercase text-amber-500 mb-4">Injetar Divindade</h3>
-                            <div class="space-y-3">
-                                <input type="text" id="input-sender" placeholder="Nome do Admin" class="w-full bg-black border border-white/10 rounded-lg p-2 text-xs">
-                                <div class="grid grid-cols-2 gap-2">
-                                    <input type="number" id="input-gold" value="50000" class="w-full bg-black border border-white/10 rounded-lg p-2 text-xs text-amber-500">
-                                    <input type="number" id="input-diamonds" value="5000" class="w-full bg-black border border-white/10 rounded-lg p-2 text-xs text-blue-400">
-                                </div>
-                                <button onclick="adminAction('inject')" class="w-full py-3 bg-amber-500 text-black font-bold rounded-lg text-[10px] uppercase">Enviar Bênção</button>
-                            </div>
-                        </div>
-
-                        <div class="glass-card p-6 border-white/5">
-                            <h3 class="text-[10px] font-bold uppercase text-blue-400 mb-4">Metadados de Alma</h3>
-                            <div class="space-y-3">
-                                <input type="text" id="input-name" placeholder="Novo Nickname" class="w-full bg-black border border-white/10 rounded-lg p-2 text-xs">
-                                <div class="flex gap-2">
-                                    <button onclick="adminAction('updateProfile')" class="flex-1 py-3 bg-white text-black font-bold rounded-lg text-[9px] uppercase">Salvar</button>
-                                    <button onclick="adminAction('toggleBadge')" class="flex-1 py-3 bg-blue-600 text-white font-bold rounded-lg text-[9px] uppercase">Selo ✓</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-        </div>
-    </main>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot, collection, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        const firebaseConfig = JSON.parse(__firebase_config);
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'dragon-slayer-supreme';
-
-        const ADMIN_SECRET = "DRAGON777";
-        let isAdminAuthenticated = false;
-        let isOwner = false;
-        let user = null;
-        let userData = {
-            userId: "#Guerreiro",
-            avatarUrl: "https://images.unsplash.com/photo-1549194388-f61be84a6e9e?q=80&w=400",
-            gold: 0,
-            diamonds: 0,
-            atk: 10,
-            trainCount: 0,
-            isVip: false,
-            isVerified: false,
-            lastDonor: "Sistema",
-            lastGiftAmount: 0,
-            lastUpdate: Date.now()
-        };
-
-        // --- Lógica de Autenticação ---
-        async function initAuth() {
-            try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
+                if (screenX < -100 || screenX > canvas.width + 100 || screenY < -100 || screenY > canvas.height + 100) {
+                    return;
                 }
-            } catch (error) {
-                console.error("Erro na autenticação:", error);
-                showToast("Erro ao ligar à Arena", "error");
+
+                // Corpo - Isométrico
+                const bodyColor = '#8B4513';
+                const skinColor = '#D4A574';
+                
+                // Sombra
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                ctx.beginPath();
+                ctx.ellipse(screenX + 20, screenY + 35, 18, 4, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Armadura
+                ctx.fillStyle = '#A0A0A0';
+                ctx.fillRect(screenX + 8, screenY + 15, 24, 18);
+                ctx.fillStyle = '#888888';
+                ctx.fillRect(screenX + 8, screenY + 15, 24, 2);
+
+                // Capa
+                ctx.fillStyle = '#8B0000';
+                ctx.beginPath();
+                ctx.moveTo(screenX + 32, screenY + 18);
+                ctx.quadraticCurveTo(screenX + 38, screenY + 25, screenX + 35, screenY + 35);
+                ctx.quadraticCurveTo(screenX + 32, screenY + 30, screenX + 32, screenY + 18);
+                ctx.fill();
+
+                // Braços
+                ctx.fillStyle = skinColor;
+                ctx.fillRect(screenX + 5, screenY + 18, 4, 12);
+                ctx.fillRect(screenX + 31, screenY + 18, 4, 12);
+
+                // Cabeça
+                ctx.fillStyle = skinColor;
+                ctx.beginPath();
+                ctx.arc(screenX + 20, screenY + 8, 7, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Cabelo
+                ctx.fillStyle = '#3E2723';
+                ctx.beginPath();
+                ctx.arc(screenX + 20, screenY + 6, 7, Math.PI, 0);
+                ctx.fill();
+
+                // Olhos
+                ctx.fillStyle = '#000';
+                ctx.beginPath();
+                ctx.arc(screenX + 17, screenY + 8, 1.5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(screenX + 23, screenY + 8, 1.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Boca
+                ctx.strokeStyle = '#8B4513';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(screenX + 20, screenY + 10, 2, 0, Math.PI);
+                ctx.stroke();
+
+                // Arma na mão
+                ctx.strokeStyle = '#C0C0C0';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.moveTo(screenX + 35, screenY + 25);
+                ctx.lineTo(screenX + 45, screenY + 15);
+                ctx.stroke();
+
+                // Brilho da arma
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(screenX + 35, screenY + 25);
+                ctx.lineTo(screenX + 45, screenY + 15);
+                ctx.stroke();
+
+                // Borda dourada (halo do herói)
+                ctx.strokeStyle = '#FFD700';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(screenX + 5, screenY - 2, 30, 38);
+            }
+
+            update(keys) {
+                let moving = false;
+                let newX = this.x;
+                let newY = this.y;
+
+                if (keys['w'] || keys['W']) {
+                    newY -= this.speed;
+                    this.direction = 'up';
+                    moving = true;
+                }
+                if (keys['s'] || keys['S']) {
+                    newY += this.speed;
+                    this.direction = 'down';
+                    moving = true;
+                }
+                if (keys['a'] || keys['A']) {
+                    newX -= this.speed;
+                    this.direction = 'left';
+                    moving = true;
+                }
+                if (keys['d'] || keys['D']) {
+                    newX += this.speed;
+                    this.direction = 'right';
+                    moving = true;
+                }
+
+                // Verificar colisão
+                if (!this.collidesWithObjects(newX, newY)) {
+                    this.x = newX;
+                    this.y = newY;
+                }
+
+                this.moving = moving;
+
+                if (moving && this.stamina > 0) {
+                    this.stamina = Math.max(0, this.stamina - 0.3);
+                } else if (!moving) {
+                    this.stamina = Math.min(this.maxStamina, this.stamina + 0.2);
+                }
+
+                this.mana = Math.min(this.maxMana, this.mana + 0.08);
+            }
+
+            collidesWithObjects(x, y) {
+                for (let tree of world.trees.values()) {
+                    if (tree.collidesWith(x, y, this.width, this.height)) {
+                        return true;
+                    }
+                }
+                for (let rock of world.rocks.values()) {
+                    if (rock.collidesWith(x, y, this.width, this.height)) {
+                        return true;
+                    }
+                }
+                for (let house of world.houses.values()) {
+                    if (house.collidesWith(x, y, this.width, this.height)) {
+                        return true;
+                    }
+                }
+                return false;
             }
         }
 
-        onAuthStateChanged(auth, async (u) => {
-            if (u) {
-                user = u;
-                document.getElementById('auth-overlay').style.display = 'none';
-                await checkOwnership();
-                startSync();
-                startRankingSync();
+        class TerrainTile {
+            constructor(x, y, type) {
+                this.x = x;
+                this.y = y;
+                this.type = type;
+                this.width = 50;
+                this.height = 50;
             }
+
+            draw(offsetX, offsetY) {
+                const screenX = this.x - offsetX;
+                const screenY = this.y - offsetY;
+
+                if (screenX < -60 || screenX > canvas.width + 60 || screenY < -60 || screenY > canvas.height + 60) {
+                    return;
+                }
+
+                const colors = {
+                    grass: { main: '#2D5016', light: '#3A6B1F', dark: '#1F3A0D' },
+                    dirt: { main: '#8B7355', light: '#A0826D', dark: '#6B5344' },
+                    stone: { main: '#808080', light: '#999999', dark: '#696969' },
+                    road: { main: '#9E9E9E', light: '#B0B0B0', dark: '#808080' },
+                    water: { main: '#1E5BA8', light: '#2A7DC4', dark: '#0D3A6B' },
+                    sand: { main: '#C4B89A', light: '#D4C9A8', dark: '#A49880' }
+                };
+
+                const color = colors[this.type] || colors.grass;
+
+                // Base do tile
+                ctx.fillStyle = color.dark;
+                ctx.fillRect(screenX, screenY, this.width, this.height);
+
+                // Padrão de profundidade
+                ctx.fillStyle = color.main;
+                ctx.fillRect(screenX, screenY, this.width, this.height - 2);
+
+                // Brilho
+                ctx.fillStyle = color.light;
+                ctx.fillRect(screenX, screenY, this.width, 1);
+
+                // Sombra inferior
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+                ctx.fillRect(screenX, screenY + this.height - 1, this.width, 1);
+
+                // Grid suave
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+                ctx.lineWidth = 0.5;
+                ctx.strokeRect(screenX, screenY, this.width, this.height);
+            }
+        }
+
+        class Tree {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.width = 45;
+                this.height = 55;
+                this.wood = 10;
+            }
+
+            draw(offsetX, offsetY) {
+                const screenX = this.x - offsetX;
+                const screenY = this.y - offsetY;
+
+                if (screenX < -80 || screenX > canvas.width + 80 || screenY < -80 || screenY > canvas.height + 80) {
+                    return;
+                }
+
+                // Sombra
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+                ctx.beginPath();
+                ctx.ellipse(screenX + 22, screenY + 45, 20, 5, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Tronco
+                ctx.fillStyle = '#654321';
+                ctx.fillRect(screenX + 15, screenY + 30, 14, 18);
+
+                // Textura do tronco
+                ctx.fillStyle = '#8B5A2B';
+                ctx.fillRect(screenX + 15, screenY + 30, 7, 18);
+
+                // Raízes
+                ctx.strokeStyle = '#654321';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(screenX + 15, screenY + 48);
+                ctx.lineTo(screenX + 10, screenY + 52);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(screenX + 29, screenY + 48);
+                ctx.lineTo(screenX + 34, screenY + 52);
+                ctx.stroke();
+
+                // Folhagem (3 camadas)
+                ctx.fillStyle = '#1F5F1F';
+                ctx.beginPath();
+                ctx.arc(screenX + 22, screenY + 15, 22, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#228B22';
+                ctx.beginPath();
+                ctx.arc(screenX + 22, screenY + 20, 20, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#32CD32';
+                ctx.beginPath();
+                ctx.arc(screenX + 22, screenY + 25, 16, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Detalhes da folhagem
+                ctx.fillStyle = 'rgba(50, 205, 50, 0.6)';
+                ctx.beginPath();
+                ctx.arc(screenX + 15, screenY + 20, 8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(screenX + 29, screenY + 18, 8, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Brilho
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+                ctx.beginPath();
+                ctx.arc(screenX + 16, screenY + 16, 6, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            collidesWith(x, y, width, height) {
+                return x < this.x + this.width && x + width > this.x && 
+                       y < this.y + this.height && y + height > this.y;
+            }
+        }
+
+        class Rock {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.width = 40;
+                this.height = 40;
+                this.ore = 5;
+            }
+
+            draw(offsetX, offsetY) {
+                const screenX = this.x - offsetX;
+                const screenY = this.y - offsetY;
+
+                if (screenX < -60 || screenX > canvas.width + 60 || screenY < -60 || screenY > canvas.height + 60) {
+                    return;
+                }
+
+                // Sombra
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                ctx.beginPath();
+                ctx.ellipse(screenX + 20, screenY + 33, 18, 4, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Rocha base
+                ctx.fillStyle = '#696969';
+                ctx.beginPath();
+                ctx.arc(screenX + 20, screenY + 20, 18, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Rocha mais escura (sombra)
+                ctx.fillStyle = '#4A4A4A';
+                ctx.beginPath();
+                ctx.arc(screenX + 22, screenY + 22, 16, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Textura das pedras
+                ctx.fillStyle = '#808080';
+                ctx.beginPath();
+                ctx.arc(screenX + 14, screenY + 14, 6, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#606060';
+                ctx.beginPath();
+                ctx.arc(screenX + 26, screenY + 24, 5, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#A0A0A0';
+                ctx.beginPath();
+                ctx.arc(screenX + 20, screenY + 12, 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Brilho mineral
+                ctx.fillStyle = 'rgba(200, 200, 200, 0.4)';
+                ctx.beginPath();
+                ctx.arc(screenX + 16, screenY + 16, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            collidesWith(x, y, width, height) {
+                return x < this.x + this.width && x + width > this.x && 
+                       y < this.y + this.height && y + height > this.y;
+            }
+        }
+
+        class House {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.width = 70;
+                this.height = 60;
+            }
+
+            draw(offsetX, offsetY) {
+                const screenX = this.x - offsetX;
+                const screenY = this.y - offsetY;
+
+                if (screenX < -100 || screenX > canvas.width + 100 || screenY < -100 || screenY > canvas.height + 100) {
+                    return;
+                }
+
+                // Sombra
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+                ctx.beginPath();
+                ctx.ellipse(screenX + 35, screenY + 52, 32, 6, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Parede lateral direita (mais escura - profundidade)
+                ctx.fillStyle = '#8B4513';
+                ctx.beginPath();
+                ctx.moveTo(screenX + 35, screenY + 20);
+                ctx.lineTo(screenX + 70, screenY + 30);
+                ctx.lineTo(screenX + 70, screenY + 48);
+                ctx.lineTo(screenX + 35, screenY + 38);
+                ctx.closePath();
+                ctx.fill();
+
+                // Parede frontal
+                ctx.fillStyle = '#A0522D';
+                ctx.fillRect(screenX, screenY + 20, 70, 28);
+
+                // Teto frontal (triângulo)
+                ctx.fillStyle = '#8B4513';
+                ctx.beginPath();
+                ctx.moveTo(screenX, screenY + 20);
+                ctx.lineTo(screenX + 35, screenY - 8);
+                ctx.lineTo(screenX + 70, screenY + 20);
+                ctx.closePath();
+                ctx.fill();
+
+                // Teto lateral (mais escuro)
+                ctx.fillStyle = '#654321';
+                ctx.beginPath();
+                ctx.moveTo(screenX + 35, screenY - 8);
+                ctx.lineTo(screenX + 70, screenY + 20);
+                ctx.lineTo(screenX + 70, screenY + 30);
+                ctx.lineTo(screenX + 50, screenY + 8);
+                ctx.closePath();
+                ctx.fill();
+
+                // Porta
+                ctx.fillStyle = '#654321';
+                ctx.fillRect(screenX + 25, screenY + 32, 20, 24);
+
+                // Detalhe da porta
+                ctx.strokeStyle = '#3E2723';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(screenX + 25, screenY + 32, 20, 24);
+
+                // Maçaneta
+                ctx.fillStyle = '#FFD700';
+                ctx.beginPath();
+                ctx.arc(screenX + 42, screenY + 43, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Janelas
+                ctx.fillStyle = '#87CEEB';
+                ctx.fillRect(screenX + 8, screenY + 25, 12, 10);
+                ctx.fillRect(screenX + 50, screenY + 25, 12, 10);
+
+                // Vidro das janelas
+                ctx.strokeStyle = '#4A90E2';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(screenX + 14, screenY + 25);
+                ctx.lineTo(screenX + 14, screenY + 35);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(screenX + 8, screenY + 30);
+                ctx.lineTo(screenX + 20, screenY + 30);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(screenX + 56, screenY + 25);
+                ctx.lineTo(screenX + 56, screenY + 35);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(screenX + 50, screenY + 30);
+                ctx.lineTo(screenX + 62, screenY + 30);
+                ctx.stroke();
+
+                // Fumaça
+                ctx.fillStyle = 'rgba(150, 150, 150, 0.3)';
+                ctx.beginPath();
+                ctx.arc(screenX + 35, screenY - 12, 6, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            collidesWith(x, y, width, height) {
+                return x < this.x + this.width && x + width > this.x && 
+                       y < this.y + this.height && y + height > this.y;
+            }
+        }
+
+        class Mob {
+            constructor(x, y, type) {
+                this.x = x;
+                this.y = y;
+                this.type = type;
+                this.width = 35;
+                this.height = 35;
+                this.speed = 1.2;
+                this.hp = 30;
+                this.maxHp = 30;
+                this.direction = Math.random() * 2 * Math.PI;
+                this.moveTimer = 0;
+                this.moveInterval = Math.random() * 200 + 80;
+            }
+
+            draw(offsetX, offsetY) {
+                const screenX = this.x - offsetX;
+                const screenY = this.y - offsetY;
+
+                if (screenX < -70 || screenX > canvas.width + 70 || screenY < -70 || screenY > canvas.height + 70) {
+                    return;
+                }
+
+                // Sombra
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+                ctx.beginPath();
+                ctx.ellipse(screenX + 17, screenY + 30, 15, 3, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                switch (this.type) {
+                    case 'cow':
+                        // Corpo
+                        ctx.fillStyle = '#FFFFFF';
+                        ctx.beginPath();
+                        ctx.ellipse(screenX + 17, screenY + 18, 12, 8, 0, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Manchas
+                        ctx.fillStyle = '#000000';
+                        ctx.beginPath();
+                        ctx.ellipse(screenX + 12, screenY + 16, 5, 4, 0.2, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.ellipse(screenX + 22, screenY + 20, 4, 3, -0.2, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Cabeça
+                        ctx.fillStyle = '#FFFFFF';
+                        ctx.beginPath();
+                        ctx.ellipse(screenX + 8, screenY + 12, 6, 5, 0, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Chifres
+                        ctx.strokeStyle = '#000';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(screenX + 5, screenY + 8);
+                        ctx.lineTo(screenX + 2, screenY + 3);
+                        ctx.stroke();
+                        ctx.beginPath();
+                        ctx.moveTo(screenX + 11, screenY + 8);
+                        ctx.lineTo(screenX + 14, screenY + 3);
+                        ctx.stroke();
+
+                        // Olho
+                        ctx.fillStyle = '#000';
+                        ctx.beginPath();
+                        ctx.arc(screenX + 6, screenY + 11, 1.5, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Patas
+                        ctx.fillStyle = '#FFFFFF';
+                        ctx.fillRect(screenX + 10, screenY + 25, 2, 8);
+                        ctx.fillRect(screenX + 15, screenY + 25, 2, 8);
+                        ctx.fillRect(screenX + 20, screenY + 25, 2, 8);
+                        ctx.fillRect(screenX + 24, screenY + 25, 2, 8);
+                        break;
+
+                    case 'sheep':
+                        // Corpo (lã)
+                        ctx.fillStyle = '#FFFACD';
+                        ctx.beginPath();
+                        ctx.arc(screenX + 17, screenY + 18, 11, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Textura da lã
+                        ctx.fillStyle = '#FFFFE0';
+                        for (let i = 0; i < 360; i += 60) {
+                            const angle = i * Math.PI / 180;
+                            ctx.beginPath();
+                            ctx.arc(screenX + 17 + Math.cos(angle) * 10, screenY + 18 + Math.sin(angle) * 10, 3, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+
+                        // Cabeça
+                        ctx.fillStyle = '#D4A574';
+                        ctx.beginPath();
+                        ctx.arc(screenX + 8, screenY + 12, 5, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Olho
+                        ctx.fillStyle = '#000';
+                        ctx.beginPath();
+                        ctx.arc(screenX + 6, screenY + 11, 1.5, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Patas
+                        ctx.fillStyle = '#D4A574';
+                        ctx.fillRect(screenX + 13, screenY + 27, 2, 7);
+                        ctx.fillRect(screenX + 20, screenY + 27, 2, 7);
+                        break;
+
+                    case 'chicken':
+                        // Corpo
+                        ctx.fillStyle = '#FFD700';
+                        ctx.beginPath();
+                        ctx.ellipse(screenX + 17, screenY + 18, 8, 6, 0, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Asa
+                        ctx.fillStyle = '#FFA500';
+                        ctx.beginPath();
+                        ctx.ellipse(screenX + 23, screenY + 18, 6, 4, 0.3, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Cabeça
+                        ctx.fillStyle = '#FFD700';
+                        ctx.beginPath();
+                        ctx.arc(screenX + 10, screenY + 12, 4, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Crista
+                        ctx.fillStyle = '#FF6347';
+                        ctx.beginPath();
+                        ctx.moveTo(screenX + 12, screenY + 8);
+                        ctx.lineTo(screenX + 14, screenY + 5);
+                        ctx.lineTo(screenX + 12, screenY + 8);
+                        ctx.closePath();
+                        ctx.fill();
+
+                        // Bico
+                        ctx.fillStyle = '#FF6347';
+                        ctx.beginPath();
+                        ctx.moveTo(screenX + 7, screenY + 12);
+                        ctx.lineTo(screenX + 4, screenY + 12);
+                        ctx.lineTo(screenX + 6, screenY + 13);
+                        ctx.closePath();
+                        ctx.fill();
+
+                        // Patas
+                        ctx.fillStyle = '#FF6347';
+                        ctx.fillRect(screenX + 15, screenY + 24, 1.5, 6);
+                        ctx.fillRect(screenX + 19, screenY + 24, 1.5, 6);
+                        break;
+
+                    case 'zombie':
+                        // Corpo
+                        ctx.fillStyle = '#556B2F';
+                        ctx.fillRect(screenX + 8, screenY + 15, 18, 15);
+
+                        // Manchas de decomposição
+                        ctx.fillStyle = '#3D4F1F';
+                        ctx.beginPath();
+                        ctx.arc(screenX + 12, screenY + 18, 3, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.arc(screenX + 22, screenY + 23, 2.5, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Cabeça
+                        ctx.fillStyle = '#6B8E23';
+                        ctx.fillRect(screenX + 10, screenY + 6, 14, 12);
+
+                        // Olhos brilhantes
+                        ctx.fillStyle = '#00FF00';
+                        ctx.beginPath();
+                        ctx.arc(screenX + 13, screenY + 10, 2.5, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.arc(screenX + 21, screenY + 10, 2.5, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Brilho nos olhos
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                        ctx.beginPath();
+                        ctx.arc(screenX + 12, screenY + 9, 1, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.arc(screenX + 20, screenY + 9, 1, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Boca assustadora
+                        ctx.strokeStyle = '#000';
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.arc(screenX + 17, screenY + 13, 2, 0, Math.PI);
+                        ctx.stroke();
+
+                        // Braços
+                        ctx.fillStyle = '#556B2F';
+                        ctx.fillRect(screenX + 3, screenY + 16, 4, 10);
+                        ctx.fillRect(screenX + 29, screenY + 16, 4, 10);
+                        break;
+                }
+
+                // Barra de vida acima
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+                ctx.fillRect(screenX - 2, screenY - 10, 36, 5);
+                ctx.fillStyle = this.hp / this.maxHp > 0.5 ? '#00FF00' : this.hp / this.maxHp > 0.2 ? '#FFFF00' : '#FF0000';
+                ctx.fillRect(screenX - 2, screenY - 10, (this.hp / this.maxHp) * 36, 5);
+                ctx.strokeStyle = '#FFD700';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(screenX - 2, screenY - 10, 36, 5);
+            }
+
+            update() {
+                this.moveTimer++;
+                if (this.moveTimer >= this.moveInterval) {
+                    this.direction = Math.random() * 2 * Math.PI;
+                    this.moveTimer = 0;
+                    this.moveInterval = Math.random() * 200 + 80;
+                }
+
+                const newX = this.x + Math.cos(this.direction) * this.speed;
+                const newY = this.y + Math.sin(this.direction) * this.speed;
+
+                let canMove = true;
+                for (let tree of world.trees.values()) {
+                    if (tree.collidesWith(newX, newY, this.width, this.height)) {
+                        canMove = false;
+                        break;
+                    }
+                }
+                if (canMove) {
+                    for (let rock of world.rocks.values()) {
+                        if (rock.collidesWith(newX, newY, this.width, this.height)) {
+                            canMove = false;
+                            break;
+                        }
+                    }
+                }
+
+                if (canMove) {
+                    this.x = newX;
+                    this.y = newY;
+                }
+            }
+
+            collidesWith(x, y, width, height) {
+                return x < this.x + this.width && x + width > this.x && 
+                       y < this.y + this.height && y + height > this.y;
+            }
+        }
+
+        class WorldGenerator {
+            constructor() {
+                this.tiles = new Map();
+                this.trees = new Map();
+                this.rocks = new Map();
+                this.houses = new Map();
+                this.mobs = new Map();
+                this.loadedChunks = new Set();
+            }
+
+            getChunkKey(chunkX, chunkY) {
+                return `${chunkX},${chunkY}`;
+            }
+
+            generateChunk(chunkX, chunkY) {
+                const key = this.getChunkKey(chunkX, chunkY);
+                if (this.loadedChunks.has(key)) return;
+                this.loadedChunks.add(key);
+
+                const chunkSize = 8;
+                const tileSize = 50;
+                const baseX = chunkX * chunkSize * tileSize;
+                const baseY = chunkY * chunkSize * tileSize;
+
+                for (let i = 0; i < chunkSize; i++) {
+                    for (let j = 0; j < chunkSize; j++) {
+                        const x = baseX + i * tileSize;
+                        const y = baseY + j * tileSize;
+                        const tileKey = `${x},${y}`;
+
+                        // Ruído Perlin-like simples
+                        const noise1 = Math.sin(x * 0.005) * Math.cos(y * 0.005);
+                        const noise2 = Math.sin(x * 0.002) * Math.cos(y * 0.002);
+
+                        let tileType = 'grass';
+
+                        if (noise1 > 0.6) {
+                            tileType = 'dirt';
+                        } else if (noise1 < -0.6) {
+                            tileType = 'stone';
+                        } else if (noise2 > 0.7) {
+                            tileType = 'water';
+                        } else if (Math.random() < 0.05) {
+                            tileType = 'road';
+                        }
+
+                        this.tiles.set(tileKey, new TerrainTile(x, y, tileType));
+
+                        // Árvores
+                        if (Math.random() < 0.065 && tileType === 'grass') {
+                            this.trees.set(tileKey, new Tree(x + 15, y + 10));
+                        }
+
+                        // Pedras
+                        if (Math.random() < 0.045 && (tileType === 'stone' || tileType === 'dirt')) {
+                            this.rocks.set(tileKey, new Rock(x + 20, y + 15));
+                        }
+
+                        // Casas
+                        if (Math.random() < 0.015 && tileType === 'grass') {
+                            this.houses.set(tileKey, new House(x + 5, y + 5));
+                        }
+
+                        // Mobs
+                        if (Math.random() < 0.05 && tileType === 'grass') {
+                            const mobTypes = ['cow', 'sheep', 'chicken', 'zombie'];
+                            const weights = [0.35, 0.30, 0.25, 0.10];
+                            let random = Math.random();
+                            let mobType = 'cow';
+
+                            if (random < weights[0]) mobType = 'cow';
+                            else if (random < weights[0] + weights[1]) mobType = 'sheep';
+                            else if (random < weights[0] + weights[1] + weights[2]) mobType = 'chicken';
+                            else mobType = 'zombie';
+
+                            this.mobs.set(tileKey + '_' + Math.random(), new Mob(x + 25, y + 20, mobType));
+                        }
+                    }
+                }
+            }
+
+            getTilesAround(x, y, range) {
+                const chunkSize = 8;
+                const tileSize = 50;
+                const chunkPixelSize = chunkSize * tileSize;
+                const chunkRange = Math.ceil(range / chunkPixelSize) + 1;
+
+                const currentChunkX = Math.floor(x / chunkPixelSize);
+                const currentChunkY = Math.floor(y / chunkPixelSize);
+
+                for (let cx = currentChunkX - chunkRange; cx <= currentChunkX + chunkRange; cx++) {
+                    for (let cy = currentChunkY - chunkRange; cy <= currentChunkY + chunkRange; cy++) {
+                        this.generateChunk(cx, cy);
+                    }
+                }
+            }
+        }
+
+        // ============ INICIALIZAÇÃO ============
+
+        const player = new Player(400, 300);
+        const world = new WorldGenerator();
+        const keys = {};
+
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
         });
 
-        async function checkOwnership() {
-            if (!user) return;
-            const configRef = doc(db, 'artifacts', appId, 'public', 'data', 'config', 'default');
-            try {
-                const snap = await getDoc(configRef);
-                if (!snap.exists()) {
-                    await setDoc(configRef, { ownerId: user.uid });
-                    isOwner = true;
-                } else if (snap.data().ownerId === user.uid) {
-                    isOwner = true;
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+
+        // ============ FUNCTIONS ============
+
+        function updateUI() {
+            document.getElementById('hpValue').textContent = `${Math.ceil(player.hp)}/${player.maxHp}`;
+            document.getElementById('hpBar').style.width = (player.hp / player.maxHp) * 100 + '%';
+
+            document.getElementById('manaValue').textContent = `${Math.ceil(player.mana)}/${player.maxMana}`;
+            document.getElementById('manaBar').style.width = (player.mana / player.maxMana) * 100 + '%';
+
+            document.getElementById('staminaValue').textContent = `${Math.ceil(player.stamina)}/${player.maxStamina}`;
+            document.getElementById('staminaBar').style.width = (player.stamina / player.maxStamina) * 100 + '%';
+
+            document.getElementById('levelValue').textContent = player.level;
+            document.getElementById('expValue').textContent = `${player.exp}/${player.maxExp}`;
+            document.getElementById('goldValue').textContent = player.gold;
+        }
+
+        function drawMinimap() {
+            minimapCtx.fillStyle = '#1a1a2e';
+            minimapCtx.fillRect(0, 0, minimapCanvas.width, minimapCanvas.height);
+
+            const scale = minimapCanvas.width / 800;
+            const playerX = (player.x * scale) % minimapCanvas.width;
+            const playerY = (player.y * scale) % minimapCanvas.height;
+
+            // Mobs
+            minimapCtx.fillStyle = '#FF6B6B';
+            for (let mob of world.mobs.values()) {
+                const mobX = (mob.x * scale) % minimapCanvas.width;
+                const mobY = (mob.y * scale) % minimapCanvas.height;
+                minimapCtx.fillRect(mobX - 2, mobY - 2, 4, 4);
+            }
+
+            // Árvores
+            minimapCtx.fillStyle = '#228B22';
+            for (let tree of world.trees.values()) {
+                const treeX = (tree.x * scale) % minimapCanvas.width;
+                const treeY = (tree.y * scale) % minimapCanvas.height;
+                minimapCtx.fillRect(treeX - 1.5, treeY - 1.5, 3, 3);
+            }
+
+            // Casas
+            minimapCtx.fillStyle = '#D4A574';
+            for (let house of world.houses.values()) {
+                const houseX = (house.x * scale) % minimapCanvas.width;
+                const houseY = (house.y * scale) % minimapCanvas.height;
+                minimapCtx.fillRect(houseX - 2, houseY - 2, 4, 4);
+            }
+
+            // Jogador
+            minimapCtx.fillStyle = '#FFD700';
+            minimapCtx.beginPath();
+            minimapCtx.arc(playerX, playerY, 3, 0, Math.PI * 2);
+            minimapCtx.fill();
+
+            // Borda
+            minimapCtx.strokeStyle = '#8B7355';
+            minimapCtx.lineWidth = 2;
+            minimapCtx.strokeRect(0, 0, minimapCanvas.width, minimapCanvas.height);
+        }
+
+        function getLocationName(x, y) {
+            const gridX = Math.floor(x / 400);
+            const gridY = Math.floor(y / 400);
+            const locations = [
+                'Floresta Escura', 'Vila de Pedra', 'Planícies Douradas', 'Montanha Nebulosa',
+                'Rio Cristalino', 'Caverna Profunda', 'Aldeias Antigas', 'Campos de Batalha',
+                'Templo Perdido', 'Deserto Infinito', 'Floresta Encantada', 'Catacumbas',
+                'Picos de Gelo', 'Lagoa Mágica', 'Ruínas Escuras', 'Vale Adormecido'
+            ];
+
+            const index = Math.abs(gridX * 73 + gridY * 127) % locations.length;
+            return locations[index];
+        }
+
+        let lastLocationShown = '';
+        let locationTimer = 0;
+
+        // ============ GAME LOOP ============
+
+        function gameLoop() {
+            // Update
+            player.update(keys);
+            world.getTilesAround(player.x, player.y, 800);
+
+            // Update mobs
+            for (let mob of world.mobs.values()) {
+                mob.update();
+            }
+
+            // Camera
+            const offsetX = player.x - canvas.width / 2;
+            const offsetY = player.y - canvas.height / 2;
+
+            // Draw background
+            ctx.fillStyle = '#0a0a15';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw tiles
+            for (let tile of world.tiles.values()) {
+                tile.draw(offsetX, offsetY);
+            }
+
+            // Draw trees
+            let treeArray = Array.from(world.trees.values());
+            treeArray.sort((a, b) => (a.y + a.height) - (b.y + b.height));
+            for (let tree of treeArray) {
+                tree.draw(offsetX, offsetY);
+            }
+
+            // Draw rocks
+            let rockArray = Array.from(world.rocks.values());
+            rockArray.sort((a, b) => (a.y + a.height) - (b.y + b.height));
+            for (let rock of rockArray) {
+                rock.draw(offsetX, offsetY);
+            }
+
+            // Draw houses
+            let houseArray = Array.from(world.houses.values());
+            houseArray.sort((a, b) => (a.y + a.height) - (b.y + b.height));
+            for (let house of houseArray) {
+                house.draw(offsetX, offsetY);
+            }
+
+            // Draw mobs
+            let mobArray = Array.from(world.mobs.values());
+            mobArray.sort((a, b) => (a.y + a.height) - (b.y + b.height));
+            for (let mob of mobArray) {
+                mob.draw(offsetX, offsetY);
+            }
+
+            // Draw player
+            player.draw(offsetX, offsetY);
+
+            // Update location display
+            const currentLocation = getLocationName(player.x, player.y);
+            if (currentLocation !== lastLocationShown) {
+                lastLocationShown = currentLocation;
+                locationTimer = 300;
+                const locDisplay = document.getElementById('locationDisplay');
+                locDisplay.textContent = currentLocation;
+                locDisplay.classList.add('show');
+            }
+
+            if (locationTimer > 0) {
+                locationTimer--;
+                if (locationTimer === 0) {
+                    document.getElementById('locationDisplay').classList.remove('show');
                 }
-
-                if (isOwner) {
-                    // Ativa a área de admin apenas na barra lateral
-                    document.getElementById('sidebar-admin-area').classList.remove('hidden');
-                }
-            } catch (err) {
-                console.error("Erro ao verificar dono:", err);
-            }
-        }
-
-        function startSync() {
-            if (!user) return;
-            const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profiles', 'main');
-            onSnapshot(profileRef, (snap) => {
-                if (snap.exists()) {
-                    const newData = snap.data();
-                    if (newData.lastUpdate > userData.lastUpdate && newData.lastGiftAmount > 0) {
-                        showGiftNotification(newData.lastDonor, newData.lastGiftAmount);
-                    }
-                    userData = { ...userData, ...newData };
-                    renderUI();
-                } else {
-                    saveUserData();
-                }
-            }, (err) => console.error("Erro no Sync:", err));
-        }
-
-        function startRankingSync() {
-            if (!user) return;
-            const rankingRef = collection(db, 'artifacts', appId, 'public', 'data', 'ranking');
-            onSnapshot(rankingRef, (snap) => {
-                const players = [];
-                snap.forEach(doc => players.push({ ...doc.data(), uid: doc.id }));
-                renderRanking(players);
-                if (isOwner) updateAdminSelect(players);
-            }, (err) => console.error("Erro no Ranking:", err));
-        }
-
-        async function saveUserData() {
-            if (!user) return;
-            const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profiles', 'main');
-            const rankRef = doc(db, 'artifacts', appId, 'public', 'data', 'ranking', user.uid);
-            
-            const payload = { ...userData, lastUpdate: Date.now() };
-            const rankPayload = {
-                id: userData.userId,
-                avatarUrl: userData.avatarUrl,
-                gold: userData.gold,
-                isVip: userData.isVip,
-                isVerified: userData.isVerified,
-                trainCount: userData.trainCount
-            };
-
-            try {
-                await setDoc(profileRef, payload);
-                await setDoc(rankRef, rankPayload);
-            } catch (err) {
-                console.error("Erro ao guardar:", err);
-            }
-        }
-
-        // --- Interações Principais ---
-        window.handleTrain = () => {
-            if (!user) return;
-            const mult = userData.isVip ? 5 : 1;
-            const gain = userData.atk * 2 * mult;
-            userData.gold += gain;
-            userData.trainCount++;
-            userData.lastGiftAmount = 0;
-            renderUI();
-            saveUserData();
-        };
-
-        window.buyItem = (type, value, cost) => {
-            if (!user) return;
-            let success = false;
-            const useDiamonds = (type === 'vip' || (type === 'atk' && value > 100) || type === 'gold');
-
-            if (useDiamonds) {
-                if (userData.diamonds >= cost) {
-                    userData.diamonds -= cost;
-                    success = true;
-                }
-            } else {
-                if (userData.gold >= cost) {
-                    userData.gold -= cost;
-                    success = true;
-                }
             }
 
-            if (!success) return showToast("Energia insuficiente!", "error");
+            // Update UI
+            updateUI();
 
-            if (type === 'vip') {
-                userData.isVip = true;
-                userData.isVerified = true;
-                showToast("ASCENSÃO VIP COMPLETA!");
-            } else if (type === 'atk') {
-                userData.atk += value;
-                showToast(`+${value} Poder de Ataque!`);
-            } else if (type === 'diamond') {
-                userData.diamonds += value;
-                showToast(`+${value} Diamantes!`);
-            }
+            // Draw minimap
+            drawMinimap();
 
-            renderUI();
-            saveUserData();
-        };
-
-        // --- Controlo de Administrador ---
-        window.tryAdminAuth = () => {
-            const input = document.getElementById('admin-pass-input');
-            if (input.value === ADMIN_SECRET) {
-                isAdminAuthenticated = true;
-                document.getElementById('admin-auth-panel').style.display = 'none';
-                document.getElementById('admin-protected-content').classList.remove('admin-locked');
-                showToast("AUTORIDADE SUPREMA RECONHECIDA");
-            } else {
-                showToast("CHAVE REJEITADA", "error");
-            }
-            input.value = "";
-        };
-
-        window.lockAdmin = () => {
-            isAdminAuthenticated = false;
-            document.getElementById('admin-auth-panel').style.display = 'flex';
-            document.getElementById('admin-protected-content').classList.add('admin-locked');
-        };
-
-        window.adminAction = async (type) => {
-            if (!isAdminAuthenticated || !isOwner || !user) return;
-            const targetUid = document.getElementById('admin-target').value;
-            const targetRef = doc(db, 'artifacts', appId, 'users', targetUid, 'profiles', 'main');
-
-            try {
-                let snap = await getDoc(targetRef);
-                if (!snap.exists()) return showToast("Alvo não encontrado", "error");
-                
-                let data = snap.data();
-                const sender = document.getElementById('input-sender').value || "Mestre Supremo";
-
-                if (type === 'inject') {
-                    const g = parseInt(document.getElementById('input-gold').value) || 0;
-                    const d = parseInt(document.getElementById('input-diamonds').value) || 0;
-                    data.gold += g; data.diamonds += d;
-                    data.lastDonor = sender; data.lastGiftAmount = g + d;
-                } else if (type === 'updateProfile') {
-                    const n = document.getElementById('input-name').value;
-                    if (n) data.userId = n.startsWith('#') ? n : '#' + n;
-                } else if (type === 'toggleBadge') {
-                    data.isVerified = !data.isVerified;
-                }
-
-                data.lastUpdate = Date.now();
-                await setDoc(targetRef, data);
-                
-                const rankRef = doc(db, 'artifacts', appId, 'public', 'data', 'ranking', targetUid);
-                await setDoc(rankRef, {
-                    id: data.userId,
-                    avatarUrl: data.avatarUrl,
-                    gold: data.gold,
-                    isVip: data.isVip,
-                    isVerified: data.isVerified,
-                    trainCount: data.trainCount
-                });
-
-                showToast("OPERAÇÃO CONCLUÍDA");
-            } catch (err) {
-                console.error("Erro Admin:", err);
-                showToast("Erro na operação", "error");
-            }
-        };
-
-        // --- Renderização de Interface ---
-        function renderUI() {
-            document.getElementById('user-name').innerText = userData.userId;
-            document.getElementById('stat-gold').innerText = formatNum(userData.gold);
-            document.getElementById('stat-diamonds').innerText = formatNum(userData.diamonds);
-            document.getElementById('stat-atk').innerText = formatNum(userData.atk);
-            document.getElementById('stat-vip').innerText = userData.isVip ? "DIVINDADE VIP" : "MORTAL";
-            document.getElementById('stat-vip').className = userData.isVip ? "vip-text text-[9px]" : "text-gray-500 text-[9px]";
-            document.getElementById('click-value').innerText = `+${formatNum(userData.atk * 2 * (userData.isVip ? 5 : 1))} Ouro por toque`;
-            document.getElementById('last-donor').innerText = userData.lastDonor;
-            
-            const avatarImg = document.getElementById('user-avatar');
-            avatarImg.src = userData.avatarUrl;
-            if (userData.isVip) avatarImg.classList.add('vip-border');
-            else avatarImg.classList.remove('vip-border');
-            
-            document.getElementById('verified-badge').style.display = userData.isVerified ? 'flex' : 'none';
-            document.getElementById('avatar-glow').style.backgroundColor = userData.isVip ? 'rgba(168, 85, 247, 0.4)' : (userData.isVerified ? 'rgba(59, 130, 246, 0.2)' : 'transparent');
+            requestAnimationFrame(gameLoop);
         }
 
-        function renderRanking(players) {
-            const list = document.getElementById('ranking-list');
-            if (!list) return;
-            const sorted = players.sort((a,b) => b.gold - a.gold).slice(0, 15);
-            list.innerHTML = sorted.map((p, i) => `
-                <div class="glass-card p-4 flex items-center justify-between ${p.uid === user?.uid ? 'border-amber-500/30' : ''} ${p.isVip ? 'vip-border' : ''}">
-                    <div class="flex items-center gap-3">
-                        <span class="cinzel text-[10px] w-4 ${i < 3 ? 'text-amber-500' : 'text-gray-700'}">${i+1}</span>
-                        <img src="${p.avatarUrl}" class="w-10 h-10 rounded-full object-cover border ${p.isVerified ? 'border-blue-500' : 'border-white/10'}">
-                        <div>
-                            <p class="text-xs font-bold ${p.uid === user?.uid ? 'text-amber-500' : 'text-white'}">${p.id} ${p.isVerified ? '✓' : ''}</p>
-                            <p class="text-[8px] text-gray-500 uppercase">${p.isVip ? 'VIP' : 'Mortal'}</p>
-                        </div>
-                    </div>
-                    <p class="text-amber-500 font-black text-xs">${formatNum(p.gold)}</p>
-                </div>
-            `).join('');
-        }
-
-        function updateAdminSelect(players) {
-            const select = document.getElementById('admin-target');
-            if (!select) return;
-            const current = select.value;
-            select.innerHTML = players.map(p => `<option value="${p.uid}" ${p.uid === user?.uid ? 'selected' : ''}>${p.uid === user?.uid ? 'A MINHA CONTA (EU)' : p.id + ' (' + p.uid.substring(0,6) + '...)'}</option>`).join('');
-            if (current) select.value = current;
-        }
-
-        function formatNum(n) {
-            if (n >= 1000000) return (n/1000000).toFixed(1) + "M";
-            if (n >= 1000) return (n/1000).toFixed(1) + "K";
-            return Math.floor(n);
-        }
-
-        function showGiftNotification(sender, amount) {
-            const overlay = document.getElementById('gift-overlay');
-            document.getElementById('gift-text').innerText = `${sender} enviou bênção de ${formatNum(amount)}!`;
-            overlay.classList.remove('hidden');
-            setTimeout(() => overlay.classList.add('hidden'), 6000);
-        }
-
-        window.showTab = (tabId, btn) => {
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
-            const target = document.getElementById(tabId + '-tab');
-            if (target) target.classList.remove('hidden');
-            
-            document.querySelectorAll('.nav-btn').forEach(b => {
-                b.classList.remove('nav-active');
-                b.classList.add('text-gray-500');
-            });
-            
-            if (btn) {
-                btn.classList.add('nav-active');
-                btn.classList.remove('text-gray-500');
-            } else if (tabId === 'admin') {
-                // Quando o clique vem da sidebar, apenas garantimos que a aba mude
-                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('nav-active'));
-            }
-        };
-
-        function showToast(msg, type = "info") {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            toast.className = `px-6 py-3 rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-2xl transition-all duration-300 ${type === 'error' ? 'bg-red-600 text-white' : 'bg-white text-black'}`;
-            toast.innerText = msg;
-            container.appendChild(toast);
-            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
-        }
-
-        initAuth();
+        gameLoop();
     </script>
 </body>
 </html>
