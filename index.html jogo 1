@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Guerreiro - DragonSlayer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        body { background: #070707; color: white; overflow: hidden; font-family: sans-serif; }
+        .tap-btn:active { transform: scale(0.9); }
+        .gold-glow { text-shadow: 0 0 20px rgba(245, 158, 11, 0.5); }
+    </style>
+</head>
+<body class="h-screen flex flex-col items-center justify-center p-6 text-center">
+
+    <div id="conn-status" class="fixed top-0 left-0 w-full p-2 bg-red-600 text-[10px] font-bold uppercase tracking-widest transition-colors">
+        Tentando conectar à arena...
+    </div>
+
+    <div class="mb-2 uppercase text-[10px] tracking-[0.3em] text-gray-500 font-bold">Ouro da Equipa</div>
+    <h1 id="display-gold" class="text-6xl font-black text-amber-500 gold-glow mb-12">0</h1>
+
+    <div class="relative group cursor-pointer" onclick="handleTap()">
+        <div class="absolute inset-0 bg-amber-500/20 blur-[60px] rounded-full group-hover:bg-amber-500/40 transition-all"></div>
+        <img src="https://cdn-icons-png.flaticon.com/512/1004/1004664.png" class="w-56 h-56 relative z-10 tap-btn transition-transform">
+    </div>
+
+    <div class="mt-10 bg-white/5 p-4 rounded-2xl border border-white/10 w-full max-w-xs">
+        <p class="text-[10px] text-gray-500 uppercase mb-1">Teu Poder</p>
+        <p class="font-bold text-lg text-red-500">+10 POR GOLPE</p>
+    </div>
+
+    <script>
+        // DEVE SER O MESMO ID DO HOST
+        const HOST_ID = "arena-dragao-server-99"; 
+        
+        let conn = null;
+        let myAtk = 10;
+        const peer = new Peer(); // ID aleatório para o cliente
+
+        peer.on('open', () => {
+            connect();
+        });
+
+        function connect() {
+            conn = peer.connect(HOST_ID);
+
+            conn.on('open', () => {
+                const status = document.getElementById('conn-status');
+                status.innerText = "Conectado ao Soberano";
+                status.classList.replace('bg-red-600', 'bg-green-600');
+            });
+
+            conn.on('data', (data) => {
+                if (data.gold !== undefined) {
+                    document.getElementById('display-gold').innerText = Math.floor(data.gold);
+                }
+            });
+
+            conn.on('close', () => {
+                document.getElementById('conn-status').innerText = "Conexão perdida! Reconectando...";
+                document.getElementById('conn-status').classList.replace('bg-green-600', 'bg-red-600');
+                setTimeout(connect, 3000);
+            });
+        }
+
+        function handleTap() {
+            if (conn && conn.open) {
+                // O cliente envia o clique, o Host processa
+                conn.send({ type: 'tap', amount: myAtk });
+            }
+        }
+    </script>
+</body>
+</html>
