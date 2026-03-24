@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <title>DragonSlayer - SERVER HOST</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        body { background: #050505; color: white; font-family: sans-serif; }
+        .log-entry { border-left: 2px solid #f59e0b; padding-left: 8px; margin-bottom: 4px; font-size: 11px; }
+    </style>
+</head>
+<body class="h-screen flex flex-col md:flex-row p-4 gap-4">
+
+    <aside class="w-full md:w-80 bg-[#111] rounded-2xl p-6 border border-amber-500/20 flex flex-col">
+        <h2 class="text-amber-500 font-bold uppercase tracking-widest text-sm mb-4">Painel do Soberano</h2>
+        
+        <div class="bg-black/50 p-4 rounded-xl mb-4 border border-white/5">
+            <p class="text-[10px] text-gray-500 uppercase">ID da Arena (Fixo)</p>
+            <p id="host-id-display" class="text-white font-mono font-bold">Iniciando...</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 mb-6">
+            <div class="bg-white/5 p-3 rounded-lg text-center">
+                <p class="text-[9px] text-gray-400 uppercase">Ouro Global</p>
+                <p id="total-gold" class="text-xl font-black text-amber-500">0</p>
+            </div>
+            <div class="bg-white/5 p-3 rounded-lg text-center">
+                <p class="text-[9px] text-gray-400 uppercase">Guerreiros</p>
+                <p id="player-count" class="text-xl font-black text-blue-400">0</p>
+            </div>
+        </div>
+
+        <p class="text-[10px] text-gray-500 uppercase font-bold mb-2">Logs da Batalha</p>
+        <div id="logs" class="flex-1 bg-black/80 rounded-lg p-3 overflow-y-auto font-mono text-gray-400 no-scrollbar">
+            <div class="log-entry text-green-500">Aguardando conexões...</div>
+        </div>
+    </aside>
+
+    <main class="flex-1 bg-[#111] rounded-2xl border border-white/5 flex flex-col items-center justify-center relative overflow-hidden">
+        <div class="absolute inset-0 opacity-10" style="background-image: url('https://www.transparenttextures.com/patterns/carbon-fibre.png');"></div>
+        <img src="https://cdn-icons-png.flaticon.com/512/1004/1004664.png" class="w-64 h-64 opacity-50 grayscale brightness-50">
+        <p class="mt-4 text-gray-600 uppercase tracking-[0.5em] text-xs">Servidor de Jogo Ativo</p>
+    </main>
+
+    <script>
+        // CONFIGURAÇÃO DO ID FIXO
+        const ID_FIXO = "arena-dragao-server-99"; 
+        
+        let gold = 0;
+        let clients = [];
+        const peer = new Peer(ID_FIXO);
+
+        peer.on('open', (id) => {
+            document.getElementById('host-id-display').innerText = id;
+            addLog("Servidor online no ID: " + id);
+        });
+
+        peer.on('connection', (conn) => {
+            conn.on('open', () => {
+                clients.push(conn);
+                updateUI();
+                addLog(`Guerreiro ${conn.peer.substring(0,6)} conectado.`);
+                // Envia o ouro atual para o novo cliente
+                conn.send({ type: 'sync', gold: gold });
+            });
+
+            conn.on('data', (data) => {
+                if (data.type === 'tap') {
+                    gold += data.amount;
+                    updateUI();
+                    addLog(`Tap recebido: +${data.amount}`);
+                    // Avisa todos os outros
+                    broadcast({ type: 'update', gold: gold });
+                }
+            });
+
+            conn.on('close', () => {
+                clients = clients.filter(c => c !== conn);
+                updateUI();
+                addLog("Um guerreiro saiu da arena.");
+            });
+        });
+
+        function broadcast(data) {
+            clients.forEach(c => c.send(data));
+        }
+
+        function updateUI() {
+            document.getElementById('total-gold').innerText = Math.floor(gold);
+            document.getElementById('player-count').innerText = clients.length;
+        }
+
+        function addLog(msg) {
+            const container = document.getElementById('logs');
+            const div = document.createElement('div');
+            div.className = 'log-entry';
+            div.innerText = `> ${msg}`;
+            container.prepend(div);
+        }
+
+        peer.on('error', err => {
+            if(err.type === 'unavailable-id') alert("Erro: Este ID de Host já está em uso!");
+        });
+    </script>
+</body>
+</html>
